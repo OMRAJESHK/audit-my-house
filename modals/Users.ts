@@ -6,9 +6,16 @@ const UserSchema = new mongoose.Schema({
   display_password: { type: String, required: true },
   role_id: { type: Number, required: true },
   email: { type: String, required: true, unique: true },
-  mobile: { type: Number, required: true, unique: true, max: 10 },
+  mobile: {
+    type: Number,
+    required: true,
+    unique: true,
+    minlength: 10,
+    maxlength: 15,
+  },
   created_date: { type: Date, default: Date.now },
   remarks: { type: String },
 });
 
-export default mongoose.models.users || mongoose.model("users", UserSchema);
+const User = mongoose.models.users || mongoose.model("users", UserSchema);
+export default User;
