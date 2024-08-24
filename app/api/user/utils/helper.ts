@@ -1,17 +1,17 @@
-import { SafeParseReturnType } from "zod";
 import { type ObjectId } from "mongodb";
 import bcrypt from "bcryptjs";
 import User from "@/modals/Users";
 import {
+  type QueryType,
   type PaginationType,
   type ResponseType,
   type UpdateUserType,
   type UserType,
 } from "./dataTypes";
-import { UpdatedUserValidator, UserValidator } from "./validation";
+import { PaginationValidator, UpdatedUserValidator } from "./validation";
 import { NextResponse } from "next/server";
 
-export async function getUpdatedUser(body: UserType) {
+export async function getFormatedUser(body: UserType) {
   const user: UserType = {
     ...body,
     display_password: body.password,
@@ -21,20 +21,15 @@ export async function getUpdatedUser(body: UserType) {
   user.password = await bcrypt.hash(user.password, salt);
   return user;
 }
-
-export function paginationValidation(
-  validation: SafeParseReturnType<
-    { limit?: string; page?: string },
-    { limit: string; page: string }
-  >
-) {
-  if (!validation.success) {
-    return sendResponse(
-      { error: validation.error.errors, message: "Invalid Paginaton Query" },
-      400
-    );
-  }
-  return true;
+interface ValidationType extends QueryType {
+  data: QueryType;
+  success: boolean;
+  error: { errors: object };
+}
+export function getPaginationValidation(urlString: string) {
+  const url = new URL(urlString);
+  const query = Object.fromEntries(url.searchParams) as QueryType;
+  return PaginationValidator.safeParse(query);
 }
 
 export function getPagination(limit: string, page: string, totalUsers: number) {
@@ -62,14 +57,6 @@ export async function insertUser(user: UserType) {
   const createUser = new User(user);
   const response = await createUser.save();
   return response;
-}
-
-export function newUserValidation(user: UserType) {
-  const validation = UserValidator.safeParse(user);
-  if (!validation.success) {
-    return NextResponse.json(validation.error.format());
-  }
-  return true;
 }
 
 export async function updateUser(id: ObjectId, user: UserType) {

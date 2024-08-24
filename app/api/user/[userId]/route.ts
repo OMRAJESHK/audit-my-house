@@ -1,101 +1,62 @@
-import { z } from "zod";
-import mongoose from "mongoose";
-import { NextResponse } from "next/server";
+import { Types } from "mongoose";
 import User from "@/modals/Users";
 import { UpdateUserType, type ParamsType } from "../utils/dataTypes";
-import { userValidation } from "../utils/helper";
+import { sendResponse } from "../utils/helper";
+import { UpdatedUserValidator } from "../utils/validation";
+import { connectToDB } from "@/lib/db";
 
 export async function PUT(req: Request, { params }: ParamsType) {
   try {
+    await connectToDB();
     const body = await req.json();
+
     const id = params.userId;
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ message: "Invalid item ID" }, { status: 400 });
+    if (!Types.ObjectId.isValid(id)) {
+      return sendResponse({ message: "Invalid User ID" }, 400);
     }
 
     const user: UpdateUserType = body;
-    const isValid = userValidation(user) as boolean;
-
-    if (!id) {
-      return NextResponse.json(
-        { message: "User Id is Required" },
-        { status: 400 }
-      );
-    }
-    if (isValid) {
+    const validation = UpdatedUserValidator.safeParse(user);
+    if (!validation.success) {
+      const errResponse = validation.error.issues[0];
+      return sendResponse({ error: errResponse }, 400);
+    } else {
       const updatedUser = await User.findByIdAndUpdate(id, user, { new: true });
       if (!updatedUser) {
-        return NextResponse.json(
-          { id, message: "User not found" },
-          { status: 404 }
-        );
+        return sendResponse({ data: { id }, message: "User not found" }, 404);
       }
-
-      return NextResponse.json({
-        message: "User updated successfully",
-        data: updatedUser,
-      });
-    }
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      console.log(error.errors);
-      return NextResponse.json(
+      return sendResponse(
         {
-          message: "Invaid Input",
-          error: error.errors,
+          message: "User updated successfully",
+          data: updatedUser,
         },
-        { status: 400 }
+        200
       );
     }
-    return NextResponse.json(
-      {
-        message: "Invaid Input",
-        error: error,
-      },
-      { status: 400 }
-    );
+  } catch (err) {
+    const error = err as { message: string; MongooseError: object };
+    return sendResponse({ message: error.message }, 500);
   }
 }
 
-export async function DELETE(req: Request, { params }: ParamsType) {
+export async function DELETE(_: Request, { params }: ParamsType) {
   try {
+    await connectToDB();
     const id: string = params.userId;
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ message: "Invalid User ID" }, { status: 400 });
+    if (!Types.ObjectId.isValid(id)) {
+      return sendResponse({ message: "Invalid User ID" }, 400);
     }
 
-    if (!id) {
-      return NextResponse.json(
-        { message: "User Id is Required" },
-        { status: 400 }
-      );
-    }
     const deletedUser = await User.findByIdAndDelete(id);
-    console.log("deletedUser", deletedUser);
     if (!deletedUser) {
-      return NextResponse.json(
-        { id, message: "User not found" },
-        { status: 404 }
-      );
+      return sendResponse({ data: { id }, message: "User not found" }, 404);
     }
-
-    return NextResponse.json({
-      message: "User Deleted successfully",
-      data: deletedUser,
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      console.log(error.errors);
-      return NextResponse.json({
-        status: 400,
-        message: "Invaid Input",
-        error: error.errors,
-      });
-    }
-    return NextResponse.json({
-      status: 400,
-      message: "Invaid Input",
-      error: error,
-    });
+    return sendResponse(
+      { data: { deletedUser }, message: "User Deleted successfully" },
+      200
+    );
+  } catch (err) {
+    const error = err as { message: string; MongooseError: object };
+    return sendResponse({ error, message: error.message }, 500);
   }
 }

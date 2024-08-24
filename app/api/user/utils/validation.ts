@@ -1,22 +1,24 @@
 import { z } from "zod";
 import { ErrorMessages } from "./enums";
 
-export const UserValidator = z.object({
-  username: z.string().min(3).max(32),
-  password: z.string().min(3),
-  display_password: z.string().min(3),
-  role_id: z.number().min(1, ErrorMessages.ROLE_REQUIRED),
-  email: z
-    .string()
-    .email(ErrorMessages.EMAIL_INVALID)
-    .min(1, ErrorMessages.EMAIL_REQUIRED),
-  mobile: z
-    .number()
-    .min(1, ErrorMessages.MOBILE_INVALID)
-    .refine((value) => value.toString().length === 10),
-  created_date: z.date().default(() => new Date()),
-  remarks: z.string(),
-});
+export const UserValidator = z
+  .object({
+    username: z.string().min(3).max(32),
+    password: z.string().min(3),
+    display_password: z.string().min(3),
+    role_id: z.number().min(1, ErrorMessages.ROLE_REQUIRED),
+    email: z
+      .string()
+      .email(ErrorMessages.EMAIL_INVALID)
+      .min(1, ErrorMessages.EMAIL_REQUIRED),
+    mobile: z
+      .number()
+      .min(1, ErrorMessages.MOBILE_INVALID)
+      .refine((value) => value.toString().length === 10),
+    created_date: z.date().default(() => new Date()),
+    remarks: z.string(),
+  })
+  .strict();
 
 export const UpdatedUserValidator = z
   .object({
@@ -58,7 +60,9 @@ export const UpdatedUserValidator = z
     }
   });
 
-export const PaginationValidator = z.object({
-  limit: z.string().optional().default("10"),
-  page: z.string().optional().default("1"),
-});
+export const PaginationValidator = z
+  .object({
+    limit: z.string().optional().default("10"),
+    page: z.string().optional().default("1"),
+  })
+  .strict();
